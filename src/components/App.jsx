@@ -15,7 +15,8 @@
 //   );
 // };
 
-import React, { Component } from "react";
+// import React, { Component } from "react";
+import { useState, useEffect } from "react";
 import { fetchImages } from "./FetchImage/FetchImage.js";
 import { ImageGallery } from './ImageGallery/ImageGallery.js'
 import { Searchbar } from './Searchbar/Searchbar.js'
@@ -25,105 +26,93 @@ import { Loader } from "./Loader/Loader.js";
 
 import css from '../components/styles.css'
 
+export const App = () => {
+const [images, setimages] = useState([]);
+const [isLoading, setIsLoading] = useState(false);
+const [currentSearch, setCurrentSearch] = useState('')
+const [pageNr, setPageNr] = useState(1);
+const [modalOpen, setModalOpen] = useState(false);
+const [modalImg, setModalImg] = useState('');
+const [modalAlt, setModalAlt] = useState('');
 
-export class App extends Component {
-  state = {
-    images: [],
-    isLoading: false,
-    currentSearch: '',
-    pageNr: 1,
-    modalOpen: false,
-    modalImg: '',
-    modalAlt: '',
-    
-  };
-
-  handleSubmit = async e => {
+  
+ const handleSubmit = async e => {
     e.preventDefault();
-    this.setState({ isLoading: true });
+    setIsLoading({ isLoading: true });
     const inputForSearch = e.target.elements.inputForSearch;
     if (inputForSearch.value.trim() === '') {
       alert('Введіть пошуковий запит');
       return;
-    }
+    };
+
     const response = await fetchImages(inputForSearch.value, 1);
-    this.setState({
-      images: response,
-      isLoading: false,
-      currentSearch: inputForSearch.value,
-      pageNr: 1,
-    });
+    setimages(response);
+    setIsLoading(false);
+    setCurrentSearch(inputForSearch.value);
+    setPageNr(2)
+    };
+
+    const handleClickMore = async () => {
+    setIsLoading({ isLoading: true });
+    const response = await fetchImages(currentSearch, pageNr);
+    setimages([...images, ...response]);
+    setIsLoading(false);
+    setPageNr(pageNr + 1);
   };
 
-  handleClickMore = async () => {
-    const response = await fetchImages(
-      this.state.currentSearch,
-      this.state.pageNr + 1
-    );
-    this.setState({
-      images: [...this.state.images, ...response],
-      pageNr: this.state.pageNr + 1,
-    });
+  
+
+  const handleImageClick = e => {
+    setModalOpen(true);
+    setModalAlt(e.target.alt);
+    setModalImg(e.target.name);
   };
 
-  handleImageClick = e => {
-    this.setState({
-      modalOpen: true,
-      modalAlt: e.target.alt,
-      modalImg: e.target.name,
-    });
+ const handleModalClose = () => {
+  setModalOpen(false);
+  setModalImg('');
+  setModalAlt('');
   };
 
-  handleModalClose = () => {
-    this.setState({
-      modalOpen: false,
-      modalImg: '',
-      modalAlt: '',
-    });
-  };
+  useEffect(() => {
+    const handleKeyDown = event => {
+      if (event.code === 'Escape') {
+        handleModalClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+  }, []);
 
-  handleKeyDown = event => {
-    if (event.code === 'Escape') {
-      this.handleModalClose();
-    }
-  };
-
-  async componentDidMount() {
-    window.addEventListener('keydown', this.handleKeyDown);
-  }
-
-  render() {
     return (
       
       <div className={css.App}>
-        {this.state.isLoading ? (
+        {isLoading ? (
           <Loader />
             ) : (
           <>
-          <Searchbar onSubmit={this.handleSubmit} />
+          <Searchbar onSubmit={handleSubmit} />
 
           <ImageGallery
-            onImageClick={this.handleImageClick}
-            images={this.state.images}
+            onImageClick={handleImageClick}
+            images={images}
           />
 
-    {this.state.images.length > 0 ? (
-      <Button onClick={this.handleClickMore} />
+    {images.length > 0 ? (
+      <Button onClick={handleClickMore} />
     ) : null}
           </>
 
         
         )}
 
-            {this.state.modalOpen ? (
+            {modalOpen ? (
           <Modal
-            src={this.state.modalImg}
-            alt={this.state.modalAlt}
-            handleClose={this.handleModalClose}
+            src={modalImg}
+            alt={modalAlt}
+            handleClose={handleModalClose}
           />
         ) : null}
 
       </div>
     );
-  }
-};
+  };
